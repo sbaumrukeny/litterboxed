@@ -15,7 +15,7 @@ function sfc32(a, b, c, d) {
     }
 }
 
-function xmur3(str) {
+export function xmur3(str) {
     for (var i = 0, h = 1779033703 ^ str.length; i < str.length; i++) {
         h = Math.imul(h ^ str.charCodeAt(i), 3432918353);
         h = h << 13 | h >>> 19;
@@ -205,6 +205,8 @@ export let makeSolve = (words) => (puzzle) => {
             let i = puzzle.indexOf(c);
             if (i == -1 || i == last)
                 return false;
+            if (last && (Math.floor(last / 3) == Math.floor(i / 3)))
+                return false;
             last = i;
         }
         return true;
@@ -229,7 +231,7 @@ export let makeSolve = (words) => (puzzle) => {
     for (let [l1, l2] of ltp.values()) {
         for (let w1 of l1) {
             for (let w2 of l2) {
-                if ((w1 + w2).length == 13 && new Set(w1 + w2).size == 12)
+                if (new Set(w1 + w2).size == 12)
                     ans.push([w1, w2]);
             }
         }

@@ -7,6 +7,7 @@
         makeGenerate,
         makeCheck,
         makeSolve,
+        xmur3
     } from "./litterboxed.js";
 
     import { fade } from "svelte/transition";
@@ -34,13 +35,16 @@
     letters = localStorage.getItem("puzzle") || "            ";
     let generate, check, solve, solveAll;
     let displaySols = false;
+    let showSolveLink = false;
     let solutions, allSolutions;
     (async () => {
         let y = window.location.hash == "#y";
-        seed(getDate());
+        const urlParams = new URLSearchParams(window.location.search)
+        const userSeed = urlParams.has('seed') ? urlParams.get('seed') : getDate()
+        seed(userSeed);
         let easy = await loadWords("./easy.txt");
         generate = makeGenerate(easy);
-        letters = generate(getDate()).join("").toUpperCase();
+        letters = generate(userSeed).join("").toUpperCase();
         localStorage.setItem("puzzle", letters);
         localStorage.setItem("date", getDate());
         message = "loading dict";
@@ -97,6 +101,7 @@
     $: lastLetter = currentWord ? letters.indexOf(currentWord.slice(-1)) : -1;
     let selectLetter = (i) => {
         if (done) return;
+        if (lastLetter == i) deleteLetter()
         if (Math.floor(lastLetter / 3) != Math.floor(i / 3))
             currentWord = currentWord + letters[i];
     };
@@ -120,6 +125,29 @@
         previousWords = [...previousWords, currentWord];
         currentWord = currentWord.slice(-1);
         if (done) currentWord = "";
+    };
+    let generateNewLetters = () => {
+        let generateRandomString = () => {
+            const min = 'A'.charCodeAt(0)
+            const max = 'Z'.charCodeAt(0)
+            let choices = []
+            for (let i=min; i<=max; i++) {
+                choices.push(String.fromCharCode(i))
+            }
+            let result = ""
+            for (let i=0; i<10; i++) {
+                result += choices[Math.floor(Math.random()*choices.length)]
+            }
+            return result
+        }
+        const newRandomSeed = generateRandomString()
+        // letters = generate(newRandomSeed).join("").toUpperCase()
+
+        let urlParams = new URLSearchParams(window.location.search)
+        urlParams.set('seed', newRandomSeed)
+        window.location.search = `?${urlParams.toString()}`
+        
+        displaySols = false
     };
     let caret = "?";
     setInterval(() => {
@@ -145,10 +173,18 @@
     });
     let help = false;
     let modal;
+
+    window.showSolution = (p) => {
+        console.debug(xmur3(p)())
+        if (xmur3(p)() == 2126390614) {
+            showSolveLink = true
+        }
+    }
+
 </script>
 
 <main>
-    <h1>litter boxed</h1>
+    <h1>soi ya loiter 🅱️ox</h1>
 
     {#if help}
         <div
@@ -184,8 +220,11 @@
                         >.
                     </p>
                     <p>
+                        Fork created by spencer. Not open source (yet)
+                    </p>
+                    <p>
                         <a href="https://github.com/louisabraham/litterboxed"
-                            >Source code and trivia</a
+                            >Original source code by louisabraham and trivia</a
                         >
                     </p>
                 </ul>
@@ -284,16 +323,17 @@
     <div class="buttons">
         <button on:click={deleteLetter}>Delete</button>
         <button on:click={enterWord}>Enter</button>
+        <button on:click={generateNewLetters}>Random</button>
     </div>
     {#if displaySols}
         <div class="solutions">
-            <p>Some solutions for yesterday</p>
+            <p>Solutions ({allSolutions.length}):</p>
             {#each solutions as sol}
-                <p style="font-weight: bold">{sol}</p>
+                <p class={sol.length==16 ? "unique-letter-sol" : ""} style="font-weight: bold">{sol}</p>
             {/each}
             {#each allSolutions as sol}
                 {#if !solutions.includes(sol)}
-                    <p>{sol}</p>
+                    <p class={sol.length==16 ? "unique-letter-sol" : ""}>{sol}</p>
                 {/if}
             {/each}
         </div>
@@ -315,6 +355,21 @@
         >
             Yesterday
         </p>
+        {#if showSolveLink}
+        <p
+            class="link"
+            on:click={() => {
+                displaySols = true;
+                previousWords = [];
+                currentWord = "";
+                let format = (s) => `${s[0]} - ${s[1]}`;
+                solutions = solve(letters).map(format);
+                allSolutions = solveAll(letters).map(format);
+            }}
+        >
+            Solve
+        </p>
+        {/if}
         <p
             class="link"
             on:click={() => {
@@ -411,6 +466,10 @@
     }
     .modal-content > ul {
         text-align: left;
+    }
+
+    .unique-letter-sol {
+        color: #ff3e00; 
     }
 
     @keyframes blinker {

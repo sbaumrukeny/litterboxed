@@ -5721,6 +5721,7 @@ sponsor
 sponsored
 sponsors
 sponsorship
+spork
 sport
 sporting
 sports
